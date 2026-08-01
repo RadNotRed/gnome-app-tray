@@ -1,0 +1,8 @@
+{
+  "name": "App Tray",
+  "description": "A Windows-like expandable tray for background apps in the top bar.",
+  "uuid": "gnome-app-tray@radnotred.dev",
+  "shell-version": ["50"],
+  "url": "https://github.com/radnotred/gnome-app-tray",
+  "settings-schema": "org.gnome.shell.extensions.gnome-app-tray"
+}

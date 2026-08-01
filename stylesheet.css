@@ -1,0 +1,110 @@
+.gnome-app-tray-popup-item {
+  padding: 0;
+}
+
+.gnome-app-tray-content {
+  min-width: 176px;
+  padding: 8px;
+  spacing: 8px;
+}
+
+.gnome-app-tray-header {
+  min-height: 28px;
+  spacing: 8px;
+}
+
+.gnome-app-tray-title {
+  font-weight: 600;
+  padding-left: 2px;
+}
+
+.gnome-app-tray-settings-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.72);
+  background-color: transparent;
+}
+
+.gnome-app-tray-settings-button:hover,
+.gnome-app-tray-settings-button:focus {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.gnome-app-tray-grid {
+  padding: 0;
+}
+
+.gnome-app-tray-scroll-view {
+  padding: 0;
+}
+
+.gnome-app-tray-cell {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background-color: transparent;
+}
+
+.gnome-app-tray-cell:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.gnome-app-tray-cell:focus {
+  border-color: rgba(255, 255, 255, 0.62);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.gnome-app-tray-cell:active,
+.gnome-app-tray-cell:dragging {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.gnome-app-tray-cell:drop-target {
+  border-color: -st-accent-color;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.gnome-app-tray-icon-bin,
+.gnome-app-tray-icon {
+  padding: 0;
+  margin: 0;
+}
+
+.gnome-app-tray-drag-icon {
+  padding: 10px;
+  border-radius: 6px;
+  background-color: rgba(32, 32, 32, 0.92);
+}
+
+.gnome-app-tray-empty {
+  min-width: 220px;
+  padding: 18px 12px 14px;
+  spacing: 4px;
+}
+
+.gnome-app-tray-empty-icon {
+  color: rgba(255, 255, 255, 0.52);
+  margin-bottom: 4px;
+}
+
+.gnome-app-tray-empty-title {
+  font-weight: 600;
+}
+
+.gnome-app-tray-empty-subtitle,
+.gnome-app-tray-footer {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.85em;
+}
+
+.gnome-app-tray-footer {
+  padding: 2px 4px 0;
+}

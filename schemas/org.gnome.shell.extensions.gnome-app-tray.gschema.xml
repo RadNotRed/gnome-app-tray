@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.gnome-app-tray" path="/org/gnome/shell/extensions/gnome-app-tray/">
+    <key name="position" type="s">
+      <default>'top-bar'</default>
+      <summary>Legacy position setting</summary>
+      <description>Compatibility key for older cached extension code. The tray is always shown in the top bar.</description>
+    </key>
+    <key name="grid-columns" type="i">
+      <range min="2" max="8"/>
+      <default>4</default>
+      <summary>Number of columns</summary>
+      <description>Maximum number of columns in the hidden-icons flyout.</description>
+    </key>
+    <key name="grid-rows" type="i">
+      <default>3</default>
+      <summary>Legacy number of rows</summary>
+      <description>Compatibility key for older cached extension code. The new flyout wraps and scrolls automatically.</description>
+    </key>
+    <key name="auto-fit" type="b">
+      <default>true</default>
+      <summary>Legacy auto-fit setting</summary>
+      <description>Compatibility key for older cached extension code. The new flyout always fits rows automatically.</description>
+    </key>
+    <key name="icon-size" type="i">
+      <default>38</default>
+      <summary>Legacy icon size setting</summary>
+      <description>Compatibility key for older cached extension code. The new tray uses 40 pixel cells and a separate popup icon size.</description>
+    </key>
+    <key name="popup-icon-size" type="i">
+      <range min="16" max="32"/>
+      <default>20</default>
+      <summary>Flyout icon size</summary>
+      <description>Logical pixel size used for icons inside the hidden-icons flyout.</description>
+    </key>
+    <key name="default-placement" type="s">
+      <choices>
+        <choice value="overflow"/>
+        <choice value="panel"/>
+      </choices>
+      <default>'overflow'</default>
+      <summary>Default application placement</summary>
+      <description>Whether newly discovered indicators appear in the flyout or remain on the top bar.</description>
+    </key>
+    <key name="app-rules" type="a{ss}">
+      <default>@a{ss} {}</default>
+      <summary>Per-application placement rules</summary>
+      <description>Maps stable indicator identities to overflow or panel placement.</description>
+    </key>
+    <key name="known-indicators" type="a(sss)">
+      <default>@a(sss) []</default>
+      <summary>Known tray applications</summary>
+      <description>Previously observed indicator identity, display name, and icon name tuples used by preferences.</description>
+    </key>
+  </schema>
+</schemalist>

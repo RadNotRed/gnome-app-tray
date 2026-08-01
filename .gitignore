@@ -1,0 +1,4 @@
+node_modules/
+__pycache__/
+*.shell-extension.zip
+npm-debug.log*
