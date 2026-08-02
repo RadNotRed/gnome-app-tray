@@ -64,6 +64,16 @@ sudo dnf install mutter-devkit
 
 GNOME caches loaded JavaScript modules, so changing a `.js` file requires closing and relaunching the development session. CSS and settings can be iterated separately, but a full restart is the reliable test for extension code.
 
+To test fresh code against applications in the current logged-in session, use the cache-busting host-development launcher:
+
+```bash
+npm run dev:host
+```
+
+It disables the stable App Tray UUID, installs the checkout under a new temporary UUID, and removes that copy when you press `Ctrl+C`. Each run receives a new module path, so GNOME loads the current JavaScript without a logout. Only one host-development copy is kept at a time. If the terminal was interrupted before cleanup, run `npm run dev:host:stop`.
+
+GNOME does not normally let a running Wayland Shell register local extension UUIDs. Before each host-development run, press `Alt+F2`, open `lg`, select the Evaluator tab, and run `global.context.unsafe_mode = true`. The launcher uses that access only to rescan local extensions and immediately turns unsafe mode off again.
+
 Other development commands:
 
 ```bash

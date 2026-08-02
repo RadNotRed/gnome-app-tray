@@ -99,12 +99,87 @@
   font-weight: 600;
 }
 
-.gnome-app-tray-empty-subtitle,
-.gnome-app-tray-footer {
+.gnome-app-tray-empty-subtitle {
   color: rgba(255, 255, 255, 0.58);
   font-size: 0.85em;
 }
 
-.gnome-app-tray-footer {
-  padding: 2px 4px 0;
+.gnome-app-tray-context-panel {
+  min-width: 220px;
+  max-width: 320px;
+  padding-top: 8px;
+  spacing: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.gnome-app-tray-context-header {
+  min-height: 28px;
+  padding: 0 2px 2px 8px;
+}
+
+.gnome-app-tray-context-title {
+  font-weight: 600;
+}
+
+.gnome-app-tray-context-close {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.72);
+  background-color: transparent;
+}
+
+.gnome-app-tray-context-close:hover,
+.gnome-app-tray-context-close:focus {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.gnome-app-tray-context-items {
+  spacing: 2px;
+}
+
+.gnome-app-tray-context-action {
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background-color: transparent;
+  text-align: left;
+}
+
+.gnome-app-tray-context-action:hover,
+.gnome-app-tray-context-action:focus {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.gnome-app-tray-context-action:active {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.gnome-app-tray-context-action:insensitive {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.gnome-app-tray-context-icon-slot {
+  width: 22px;
+  min-width: 22px;
+}
+
+.gnome-app-tray-context-heading {
+  min-height: 28px;
+  padding-right: 8px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9em;
+}
+
+.gnome-app-tray-context-separator {
+  height: 1px;
+  margin: 4px 8px;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.gnome-app-tray-context-empty {
+  padding: 8px;
+  color: rgba(255, 255, 255, 0.58);
 }

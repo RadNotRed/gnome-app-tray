@@ -220,11 +220,28 @@ if [[ "$focus_result" != *'App Tray'* ]]; then
   exit 1
 fi
 
-eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; tray._openContextMenu([...tray._entries.keys()][0], null); return true; })()' >/dev/null
+eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const panelId = [...tray._entries.keys()][0]; tray.menu.open(); tray._openContextMenu(panelId, null); const count = tray._contextItems.get_children().length; tray._openContextMenu(panelId, null); return count; })()' >/dev/null
 sleep 0.75
-context_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); return Main.panel.statusArea["gnome-app-tray@radnotred.dev"]?._activeIndicatorMenu?.menu.isOpen ? "context-open" : "context-closed"; })()')
+context_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const inlineOpen = tray.menu.isOpen && tray._contextPanel.visible && tray._contextItems.get_children().length > 0; const foreignClosed = !entry.item.menu.isOpen; return inlineOpen && foreignClosed ? "context-open" : "context-closed"; })()')
 if [[ "$context_result" != *'context-open'* ]]; then
   echo "Right-click menu check failed: $context_result" >&2
+  exit 1
+fi
+
+action_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const action = tray._contextItems.get_children().find(child => child.has_style_class_name?.("gnome-app-tray-context-action")); action?.emit("clicked", 1); return action ? "action-clicked" : "action-missing"; })()')
+if [[ "$action_result" != *'action-clicked'* ]]; then
+  echo "Inline right-click action was not rendered: $action_result" >&2
+  exit 1
+fi
+sleep 0.5
+if ! grep -q 'MOCK_INDICATOR_ACTION id=gnome-app-tray-interaction' "$mock_log"; then
+  echo 'Inline right-click action did not reach the application' >&2
+  exit 1
+fi
+
+context_action_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; return tray.menu.isOpen && tray._contextPanel.visible ? "context-still-open" : "context-closed"; })()')
+if [[ "$context_action_result" != *'context-still-open'* ]]; then
+  echo "Inline action closed the tray: $context_action_result" >&2
   exit 1
 fi
 

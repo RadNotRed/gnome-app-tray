@@ -11,6 +11,8 @@
     "schema:check": "glib-compile-schemas --strict schemas",
     "metadata:check": "node -e \"JSON.parse(require('fs').readFileSync('metadata.json', 'utf8'))\"",
     "check": "npm run format:check && npm run syntax:check && npm run metadata:check && npm run schema:check",
+    "dev:host": "./tools/host-dev.sh",
+    "dev:host:stop": "./tools/host-dev.sh --stop",
     "test:headless": "./tools/test-headless.sh",
     "pack": "gnome-extensions pack --extra-source=lib --extra-source=prefs.js --schema=schemas/org.gnome.shell.extensions.gnome-app-tray.gschema.xml --force"
   },
