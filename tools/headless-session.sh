@@ -160,9 +160,15 @@ wait_for_tray_size 10
 eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; tray.menu.open(); tray._rebuildGrid(); return true; })()' >/dev/null
 sleep 0.75
 
-grid_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entries = tray._orderedEntries(); const buttons = entries.map(entry => entry.button); const points = buttons.map(button => button.get_transformed_position().map(Math.round)); const xs = new Set(points.map(([x]) => x)); const ys = new Set(points.map(([, y]) => y)); const fixed = buttons.every(button => button.width === 40 && button.height === 40); const movedId = entries[0].info.panelId; tray._movePanelId(movedId, entries.at(-1).info.panelId); const reordered = tray._orderedEntries().at(-1).info.panelId === movedId; tray._rebuildGrid(); return fixed && xs.size === 4 && ys.size === 3 && reordered ? "grid-ok" : `grid-failed:${fixed}:${xs.size}:${ys.size}:${reordered}`; })()')
+grid_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entries = tray._orderedEntries(); const buttons = entries.map(entry => entry.button); const points = buttons.map(button => button.get_transformed_position().map(Math.round)); const xs = new Set(points.map(([x]) => x)); const ys = new Set(points.map(([, y]) => y)); const fixed = buttons.every(button => button.width === 40 && button.height === 40); const panelSlotsCollapsed = entries.every(entry => entry.item.container.width === 0 && entry.item.container.get_preferred_width(-1)[1] === 0); const movedId = entries[0].info.panelId; tray._movePanelId(movedId, entries.at(-1).info.panelId); const reordered = tray._orderedEntries().at(-1).info.panelId === movedId; tray._rebuildGrid(); return fixed && panelSlotsCollapsed && xs.size === 4 && ys.size === 3 && reordered ? "grid-ok" : `grid-failed:${fixed}:${panelSlotsCollapsed}:${xs.size}:${ys.size}:${reordered}`; })()')
 if [[ "$grid_result" != *'grid-ok'* ]]; then
   echo "Grid geometry check failed: $grid_result" >&2
+  exit 1
+fi
+
+icon_scale_result=$(eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const pixels = Array(8 * 8 * 4).fill(0); for (let y = 0; y < 8; y++) for (let x = 2; x < 6; x++) pixels[(y * 8 + x) * 4] = 255; const pixmap = new GLib.Variant("a(iiay)", [[8, 8, pixels]]); entry.button.sync({...entry.info, indicator: {icon: {pixmap}}}, 20); const scaled = entry.button._displayScale === 1.4 && entry.button._iconBin.child.scale_x === 1.4; entry.button.sync(entry.info, 20); return scaled ? "icon-scale-ok" : "icon-scale-failed"; })()')
+if [[ "$icon_scale_result" != *'icon-scale-ok'* ]]; then
+  echo "Automatic icon scaling check failed: $icon_scale_result" >&2
   exit 1
 fi
 
@@ -204,7 +210,7 @@ done
 start_mock 'gnome-app-tray-interaction' 0 'App Tray'
 wait_for_tray_size 1
 
-interaction_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const parentUntouched = entry.item.get_parent() === entry.item.container; const menuManaged = Main.panel.menuManager._menus.includes(entry.item.menu); const iconSize = entry.button._iconSize; return parentUntouched && menuManaged && iconSize === 20 ? "ownership-ok" : "ownership-failed"; })()')
+interaction_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const parentUntouched = entry.item.get_parent() === entry.item.container; const menuManaged = Main.panel.menuManager._menus.includes(entry.item.menu); const iconSize = entry.button._iconSize; const [, containerWidth] = entry.item.container.get_preferred_width(-1); const panelSlotCollapsed = entry.item.container.width === 0 && containerWidth === 0; return parentUntouched && menuManaged && iconSize === 20 && panelSlotCollapsed ? "ownership-ok" : "ownership-failed"; })()')
 if [[ "$interaction_result" != *'ownership-ok'* ]]; then
   echo "Interaction ownership check failed: $interaction_result" >&2
   exit 1
@@ -245,8 +251,8 @@ if [[ "$context_action_result" != *'context-still-open'* ]]; then
   exit 1
 fi
 
-placement_result=$(eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; tray.settings.set_value("app-rules", new GLib.Variant("a{ss}", {[entry.info.key]: "panel"})); return entry.info.key; })()')
-if [[ "$placement_result" != *'sni:gnomeapptrayinteraction'* ]]; then
+placement_result=$(eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; tray.settings.set_value("app-rules", new GLib.Variant("a{ss}", {[entry.info.key]: "panel"})); tray._reloadRules(); tray._syncIndicators(); const restored = entry.item.container.width === entry.original.containerWidth; return `${entry.info.key}:${restored ? "restored" : "collapsed"}`; })()')
+if [[ "$placement_result" != *'sni:gnomeapptrayinteraction:restored'* ]]; then
   echo "Placement rule setup failed: $placement_result" >&2
   exit 1
 fi
