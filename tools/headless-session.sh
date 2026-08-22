@@ -166,9 +166,9 @@ if [[ "$grid_result" != *'grid-ok'* ]]; then
   exit 1
 fi
 
-icon_scale_result=$(eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const pixels = Array(8 * 8 * 4).fill(0); for (let y = 0; y < 8; y++) for (let x = 2; x < 6; x++) pixels[(y * 8 + x) * 4] = 255; const pixmap = new GLib.Variant("a(iiay)", [[8, 8, pixels]]); entry.button.sync({...entry.info, indicator: {icon: {pixmap}}}, 20); const scaled = entry.button._displayScale === 1.4 && entry.button._iconBin.child.scale_x === 1.4; entry.button.sync(entry.info, 20); return scaled ? "icon-scale-ok" : "icon-scale-failed"; })()')
-if [[ "$icon_scale_result" != *'icon-scale-ok'* ]]; then
-  echo "Automatic icon scaling check failed: $icon_scale_result" >&2
+icon_scale_result=$(eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const paddedPixels = Array(8 * 8 * 4).fill(0); for (let y = 0; y < 8; y++) for (let x = 2; x < 6; x++) paddedPixels[(y * 8 + x) * 4] = 255; const paddedPixmap = new GLib.Variant("a(iiay)", [[8, 8, paddedPixels]]); entry.button.sync({...entry.info, indicator: {icon: {pixmap: paddedPixmap}}}, 20); const paddedScaled = entry.button._displayScale === 1.4 && entry.button._displayWidth === 20 && entry.button._displayHeight === 20 && entry.button._iconBin.child.scale_x === 1.4; const rectangularPixels = Array(16 * 8 * 4).fill(255); const rectangularPixmap = new GLib.Variant("a(iiay)", [[16, 8, rectangularPixels]]); entry.button.sync({...entry.info, indicator: {icon: {pixmap: rectangularPixmap}}}, 20); const rectangularFitted = entry.button._displayScale === 1 && entry.button._displayWidth === 20 && entry.button._displayHeight === 10 && entry.button._iconBin.width === 20 && entry.button._iconBin.height === 20 && entry.button._iconBin.child.width === 20 && entry.button._iconBin.child.height === 10; entry.button.sync(entry.info, 20); return paddedScaled && rectangularFitted ? "icon-geometry-ok" : `icon-geometry-failed:${paddedScaled}:${rectangularFitted}`; })()')
+if [[ "$icon_scale_result" != *'icon-geometry-ok'* ]]; then
+  echo "Automatic icon geometry check failed: $icon_scale_result" >&2
   exit 1
 fi
 
@@ -234,6 +234,35 @@ if [[ "$context_result" != *'context-open'* ]]; then
   exit 1
 fi
 
+menu_session_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const sourceItem = entry.item.menu._getMenuItems().find(item => item._dbusItem); const dbusClient = sourceItem?._dbusItem?._client; const active = dbusClient?._active === true; tray._clearContextMenu(); const inactive = dbusClient?._active === false; tray._openContextMenu(entry.info.panelId, null); return active && inactive ? "menu-session-ok" : `menu-session-failed:${active}:${inactive}`; })()')
+if [[ "$menu_session_result" != *'menu-session-ok'* ]]; then
+  echo "Mirrored menu session check failed: $menu_session_result" >&2
+  exit 1
+fi
+
+# DBus menu updates are asynchronous and can arrive well after an initial
+# AboutToShow round trip. Verify the mirror follows a late property change.
+sleep 0.45
+eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const sourceItem = entry.item.menu._getMenuItems().find(item => item._dbusItem); sourceItem._dbusItem.propertySet("label", GLib.Variant.new_string("Delayed mock action")); return true; })()' >/dev/null
+sleep 0.1
+delayed_menu_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const action = tray._contextItems.get_children().find(child => child.accessible_name === "Delayed mock action"); return action ? "delayed-menu-ok" : "delayed-menu-stale"; })()')
+if [[ "$delayed_menu_result" != *'delayed-menu-ok'* ]]; then
+  echo "Delayed menu update was not mirrored: $delayed_menu_result" >&2
+  exit 1
+fi
+
+# Disable the extension while a live menu refresh is queued, ensuring teardown
+# cancels that source exactly once before bulk source cleanup.
+pending_refresh_result=$(eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const session = tray._contextMenuSession; const id = GLib.timeout_add(GLib.PRIORITY_LOW, 1000, () => GLib.SOURCE_REMOVE); session.refreshId = id; tray._sourceIds.add(id); const queued = session.refreshId > 0; await Main.extensionManager._callExtensionDisable("gnome-app-tray@radnotred.dev"); return queued; })()')
+if [[ "$pending_refresh_result" != *"'true'"* ]]; then
+  echo "Pending context refresh teardown failed: $pending_refresh_result" >&2
+  exit 1
+fi
+eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); await Main.extensionManager._callExtensionEnable("gnome-app-tray@radnotred.dev"); return true; })()' >/dev/null
+wait_for_tray_size 1
+eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; tray._openContextMenu([...tray._entries.keys()][0], null); return true; })()' >/dev/null
+sleep 0.1
+
 action_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const action = tray._contextItems.get_children().find(child => child.has_style_class_name?.("gnome-app-tray-context-action")); action?.emit("clicked", 1); return action ? "action-clicked" : "action-missing"; })()')
 if [[ "$action_result" != *'action-clicked'* ]]; then
   echo "Inline right-click action was not rendered: $action_result" >&2
@@ -261,7 +290,19 @@ wait_for_tray_size 0
 eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; tray.settings.set_value("app-rules", new GLib.Variant("a{ss}", {"sni:gnomeapptrayinteraction": "overflow"})); return true; })()' >/dev/null
 wait_for_tray_size 1
 
-# Remove the app while its context menu is open.
+# Exercise a quit-like menu action through the mirrored menu.
+remove_action_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const panelId = [...tray._entries.keys()][0]; tray._openContextMenu(panelId, null); const action = tray._contextItems.get_children().find(child => child.accessible_name?.includes("Remove mock indicator")); action?.emit("clicked", 1); return action ? "remove-clicked" : "remove-missing"; })()')
+if [[ "$remove_action_result" != *'remove-clicked'* ]]; then
+  echo "Quit-like menu action was not rendered: $remove_action_result" >&2
+  exit 1
+fi
+wait "$mock_pid" 2>/dev/null || true
+mock_pid=''
+wait_for_tray_size 0
+
+# Remove a separate app while its context menu is open.
+start_mock 'gnome-app-tray-context-removal' 0
+wait_for_tray_size 1
 eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const panelId = [...tray._entries.keys()][0]; tray._openContextMenu(panelId, null); return true; })()' >/dev/null
 sleep 0.5
 kill -TERM "$mock_pid" 2>/dev/null || true
@@ -273,9 +314,14 @@ wait_for_tray_size 0
 # the exact lifecycle that previously aborted GNOME Shell.
 start_mock 'gnome-app-tray-owner-disable' 0
 wait_for_tray_size 1
+sleep 0.5
 
-eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); await Main.extensionManager._callExtensionDisable("appindicatorsupport@rgcjonas.gmail.com"); return true; })()' >/dev/null
-wait_for_tray_size 0
+owner_disable_state=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); await Main.extensionManager._callExtensionDisable("appindicatorsupport@rgcjonas.gmail.com"); return Main.extensionManager.lookup("appindicatorsupport@rgcjonas.gmail.com")?.state ?? -1; })()')
+# GNOME session mode can refuse to disable a system extension. Only require its
+# indicators to disappear when the manager actually changed its state.
+if [[ "$owner_disable_state" != *"'1'"* ]]; then
+  wait_for_tray_size 0
+fi
 
 if ! kill -0 "$shell_pid" 2>/dev/null; then
   echo 'Headless GNOME Shell crashed when AppIndicator was disabled' >&2
