@@ -105,34 +105,9 @@
 }
 
 .gnome-app-tray-context-panel {
-  min-width: 0;
-  padding-top: 8px;
-  spacing: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.gnome-app-tray-context-header {
-  min-height: 28px;
-  padding: 0 2px 2px 8px;
-}
-
-.gnome-app-tray-context-title {
-  font-weight: 600;
-}
-
-.gnome-app-tray-context-close {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.72);
-  background-color: transparent;
-}
-
-.gnome-app-tray-context-close:hover,
-.gnome-app-tray-context-close:focus {
-  color: white;
-  background-color: rgba(255, 255, 255, 0.12);
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
 }
 
 .gnome-app-tray-context-items {

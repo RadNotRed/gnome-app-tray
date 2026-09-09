@@ -188,6 +188,12 @@ if [[ -n "${APP_TRAY_SCREENSHOT_PATH:-}" ]]; then
   fi
 fi
 
+switching_result=$(eval_shell "(async () => { const Main = await import('resource:///org/gnome/shell/ui/main.js'); const test = await import('file://$repo_dir/tests/context-layout.js'); return test.switching(Main.panel.statusArea['gnome-app-tray@radnotred.dev']); })()")
+if [[ "$switching_result" != *'popup-switching-ok'* ]]; then
+  echo "Popup switching check failed: $switching_result" >&2
+  exit 1
+fi
+
 eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); Main.panel.statusArea["gnome-app-tray@radnotred.dev"].menu.close(); return true; })()' >/dev/null
 for pid in "${grid_mock_pids[@]}"; do
   kill -TERM "$pid" 2>/dev/null || true
@@ -253,6 +259,12 @@ if [[ -n "${APP_TRAY_SCREENSHOT_PATH:-}" ]]; then
     "${APP_TRAY_SCREENSHOT_PATH%.png}-collapsed.png" >/dev/null
 fi
 
+dismissal_result=$(eval_shell "(async () => { const Main = await import('resource:///org/gnome/shell/ui/main.js'); const test = await import('file://$repo_dir/tests/context-layout.js'); return test.dismissal(Main.panel.statusArea['gnome-app-tray@radnotred.dev']); })()")
+if [[ "$dismissal_result" != *'popup-dismissal-ok'* ]]; then
+  echo "Popup dismissal check failed: $dismissal_result" >&2
+  exit 1
+fi
+
 model_only_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const original = entry.item.menu._getMenuItems; try { entry.item.menu._getMenuItems = () => []; tray._clearContextMenu(); tray._openContextMenu(entry.info.panelId, null); return tray._contextItems.get_children().some(child => child.accessible_name === "Mock action") ? "model-only-ok" : "model-only-failed"; } finally { entry.item.menu._getMenuItems = original; } })()')
 if [[ "$model_only_result" != *'model-only-ok'* ]]; then
   echo "Unpopulated companion menu check failed: $model_only_result" >&2
@@ -290,18 +302,18 @@ sleep 0.1
 
 action_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const action = tray._contextItems.get_children().find(child => child.has_style_class_name?.("gnome-app-tray-context-action")); action?.emit("clicked", 1); return action ? "action-clicked" : "action-missing"; })()')
 if [[ "$action_result" != *'action-clicked'* ]]; then
-  echo "Inline right-click action was not rendered: $action_result" >&2
+  echo "Popup action was not rendered: $action_result" >&2
   exit 1
 fi
 sleep 0.5
 if ! grep -q 'MOCK_INDICATOR_ACTION id=gnome-app-tray-interaction' "$mock_log"; then
-  echo 'Inline right-click action did not reach the application' >&2
+  echo 'Popup action did not reach the application' >&2
   exit 1
 fi
 
-context_action_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; return tray.menu.isOpen && tray._contextPanel.visible ? "context-still-open" : "context-closed"; })()')
-if [[ "$context_action_result" != *'context-still-open'* ]]; then
-  echo "Inline action closed the tray: $context_action_result" >&2
+context_action_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; return !tray.menu.isOpen && !tray._contextPopup && tray._contextPopupManager._menus.length === 0 ? "context-closed" : "context-still-open"; })()')
+if [[ "$context_action_result" != *'context-closed'* ]]; then
+  echo "App action did not close the menus: $context_action_result" >&2
   exit 1
 fi
 
