@@ -7,7 +7,7 @@ A Windows-style hidden-icons flyout for the GNOME 50 top bar. It works with the 
 - Finds indicators that start before or after App Tray and removes them cleanly when an app exits.
 - Shows owned proxy buttons in an aligned, scrollable 40 × 40 pixel grid with configurable 16–32 pixel icons.
 - Left-clicks focus an existing app window, falling back to the app indicator's normal activation action.
-- Right-clicks open the application's original menu; middle-click and scroll actions are forwarded when supported.
+- Right-clicks show application actions inside the tray, with click-to-expand submenus and a stable width. Long labels are shortened with an ellipsis; middle-click and scroll actions are forwarded when supported.
 - Lets icons be dragged into a temporary order. `Alt` + arrow keys provide the keyboard equivalent.
 - Stores a default placement and per-application top-bar/hidden-flyout rules on a separate Applications settings page with + and − controls.
 - Restores every original indicator state when an app exits, its owner extension stops, or App Tray is disabled.
@@ -84,7 +84,7 @@ npm run pack
 
 ## Safety model
 
-The AppIndicator extension remains the sole owner of each real panel actor and popup menu. App Tray creates its own icon buttons, collapses the original actor's panel allocation, and temporarily points an existing menu at the persistent tray arrow while it is open. It never reparents or destroys foreign actors and defers discovery changes until their owner has finished its lifecycle callback.
+The AppIndicator extension remains the sole owner of each real panel actor and popup menu. App Tray creates its own icon buttons, collapses the original actor's panel allocation, and mirrors application menu actions into its own inline panel. Submenus open on demand, and unchanged rows remain in place during updates to preserve focus and scrolling. It never reparents or destroys foreign actors and defers discovery changes until their owner has finished its lifecycle callback.
 
 ## License
 

@@ -7,7 +7,7 @@
   "scripts": {
     "format": "prettier --write \"**/*.{js,json,css,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{js,json,css,md,yml,yaml}\"",
-    "syntax:check": "node --check extension.js && node --check prefs.js && node --check lib/appTrayMenu.js && node --check tests/shell-smoke.js && bash -n tools/*.sh && python3 -c \"import ast, pathlib; [ast.parse(path.read_text()) for path in pathlib.Path('tools').glob('*.py')]\"",
+    "syntax:check": "node --check extension.js && node --check prefs.js && node --check lib/appTrayMenu.js && node --check tests/shell-smoke.js && node --check tests/context-layout.js && bash -n tools/*.sh && python3 -c \"import ast, pathlib; [ast.parse(path.read_text()) for path in pathlib.Path('tools').glob('*.py')]\"",
     "schema:check": "glib-compile-schemas --strict schemas",
     "metadata:check": "node -e \"JSON.parse(require('fs').readFileSync('metadata.json', 'utf8'))\"",
     "check": "npm run format:check && npm run syntax:check && npm run metadata:check && npm run schema:check",

@@ -166,7 +166,7 @@ if [[ "$grid_result" != *'grid-ok'* ]]; then
   exit 1
 fi
 
-icon_scale_result=$(eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const paddedPixels = Array(8 * 8 * 4).fill(0); for (let y = 0; y < 8; y++) for (let x = 2; x < 6; x++) paddedPixels[(y * 8 + x) * 4] = 255; const paddedPixmap = new GLib.Variant("a(iiay)", [[8, 8, paddedPixels]]); entry.button.sync({...entry.info, indicator: {icon: {pixmap: paddedPixmap}}}, 20); const paddedScaled = entry.button._displayScale === 1.4 && entry.button._displayWidth === 20 && entry.button._displayHeight === 20 && entry.button._iconBin.child.scale_x === 1.4; const rectangularPixels = Array(16 * 8 * 4).fill(255); const rectangularPixmap = new GLib.Variant("a(iiay)", [[16, 8, rectangularPixels]]); entry.button.sync({...entry.info, indicator: {icon: {pixmap: rectangularPixmap}}}, 20); const rectangularFitted = entry.button._displayScale === 1 && entry.button._displayWidth === 20 && entry.button._displayHeight === 10 && entry.button._iconBin.width === 20 && entry.button._iconBin.height === 20 && entry.button._iconBin.child.width === 20 && entry.button._iconBin.child.height === 10; entry.button.sync(entry.info, 20); return paddedScaled && rectangularFitted ? "icon-geometry-ok" : `icon-geometry-failed:${paddedScaled}:${rectangularFitted}`; })()')
+icon_scale_result=$(eval_shell '(async () => { const GLib = (await import("gi://GLib")).default; const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const paddedPixels = Array(8 * 8 * 4).fill(0); for (let y = 0; y < 8; y++) for (let x = 2; x < 6; x++) paddedPixels[(y * 8 + x) * 4] = 255; const paddedPixmap = new GLib.Variant("a(iiay)", [[8, 8, paddedPixels]]); entry.button.sync({...entry.info, sourceIcon: null, indicator: {icon: {pixmap: paddedPixmap}}}, 20); const paddedScaled = entry.button._displayScale === 1 && entry.button._displayWidth === 10 && entry.button._displayHeight === 20 && entry.button._croppedIcon.width === 4; const rectangularPixels = Array(16 * 8 * 4).fill(255); const rectangularPixmap = new GLib.Variant("a(iiay)", [[16, 8, rectangularPixels]]); entry.button.sync({...entry.info, sourceIcon: null, indicator: {icon: {pixmap: rectangularPixmap}}}, 20); const rectangularFitted = entry.button._displayScale === 1 && entry.button._displayWidth === 20 && entry.button._displayHeight === 10 && entry.button._iconBin.width === 20 && entry.button._iconBin.height === 20 && entry.button._iconBin.child.width === 20 && entry.button._iconBin.child.height === 10; const tinyPixels = Array(32 * 32 * 4).fill(0); for (let y = 3; y < 7; y++) for (let x = 20; x < 24; x++) tinyPixels[(y * 32 + x) * 4] = 255; entry.button.sync({...entry.info, sourceIcon: null, indicator: {icon: {pixmap: new GLib.Variant("a(iiay)", [[32, 32, tinyPixels]])}}}, 20); const tinyFitted = entry.button._croppedIcon.width === 4 && entry.button._croppedIcon.height === 4 && entry.button._displayWidth === 20 && entry.button._displayHeight === 20; entry.button.sync(entry.info, 20); const themedSquare = entry.button._displayWidth === 20 && entry.button._displayHeight === 20; return paddedScaled && rectangularFitted && tinyFitted && themedSquare ? "icon-geometry-ok" : `icon-geometry-failed:${paddedScaled}:${rectangularFitted}`; })()')
 if [[ "$icon_scale_result" != *'icon-geometry-ok'* ]]; then
   echo "Automatic icon geometry check failed: $icon_scale_result" >&2
   exit 1
@@ -228,9 +228,34 @@ fi
 
 eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const panelId = [...tray._entries.keys()][0]; tray.menu.open(); tray._openContextMenu(panelId, null); const count = tray._contextItems.get_children().length; tray._openContextMenu(panelId, null); return count; })()' >/dev/null
 sleep 0.75
-context_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const inlineOpen = tray.menu.isOpen && tray._contextPanel.visible && tray._contextItems.get_children().length > 0; const foreignClosed = !entry.item.menu.isOpen; return inlineOpen && foreignClosed ? "context-open" : "context-closed"; })()')
+dropdown_result=$(eval_shell "(async () => { const Main = await import('resource:///org/gnome/shell/ui/main.js'); const test = await import('file://$repo_dir/tests/context-layout.js'); return test.run(Main.panel.statusArea['gnome-app-tray@radnotred.dev']); })()")
+if [[ "$dropdown_result" != *'dropdown-layout-ok'* ]]; then
+  echo "Dropdown layout check failed: $dropdown_result" >&2
+  exit 1
+fi
+
+context_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const adjustment = tray._contextScrollView.get_vadjustment(); return tray.menu.isOpen && tray._contextScrollView.height <= 320 && adjustment.upper > adjustment.page_size ? "context-open" : "context-closed"; })()')
 if [[ "$context_result" != *'context-open'* ]]; then
   echo "Right-click menu check failed: $context_result" >&2
+  exit 1
+fi
+
+if [[ -n "${APP_TRAY_SCREENSHOT_PATH:-}" ]]; then
+  gdbus call --session --dest org.gnome.Shell.Screenshot \
+    --object-path /org/gnome/Shell/Screenshot \
+    --method org.gnome.Shell.Screenshot.Screenshot false false \
+    "${APP_TRAY_SCREENSHOT_PATH%.png}-menu.png" >/dev/null
+  eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; tray._contextItems.get_children().find(child => child.accessible_name === "More actions").emit("clicked", 1); return true; })()' >/dev/null
+  sleep 0.1
+  gdbus call --session --dest org.gnome.Shell.Screenshot \
+    --object-path /org/gnome/Shell/Screenshot \
+    --method org.gnome.Shell.Screenshot.Screenshot false false \
+    "${APP_TRAY_SCREENSHOT_PATH%.png}-collapsed.png" >/dev/null
+fi
+
+model_only_result=$(eval_shell '(async () => { const Main = await import("resource:///org/gnome/shell/ui/main.js"); const tray = Main.panel.statusArea["gnome-app-tray@radnotred.dev"]; const entry = [...tray._entries.values()][0]; const original = entry.item.menu._getMenuItems; try { entry.item.menu._getMenuItems = () => []; tray._clearContextMenu(); tray._openContextMenu(entry.info.panelId, null); return tray._contextItems.get_children().some(child => child.accessible_name === "Mock action") ? "model-only-ok" : "model-only-failed"; } finally { entry.item.menu._getMenuItems = original; } })()')
+if [[ "$model_only_result" != *'model-only-ok'* ]]; then
+  echo "Unpopulated companion menu check failed: $model_only_result" >&2
   exit 1
 fi
 

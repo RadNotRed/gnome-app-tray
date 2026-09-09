@@ -40,6 +40,15 @@ class MockIndicator:
         attention_item.connect("toggled", self._on_attention_toggled)
         self._menu.append(attention_item)
 
+        submenu = Gtk.Menu()
+        for index in range(12):
+            item = Gtk.MenuItem(label=f"Recent item {index + 1}")
+            item.connect("activate", self._on_action)
+            submenu.append(item)
+        more_item = Gtk.MenuItem(label="More actions")
+        more_item.set_submenu(submenu)
+        self._menu.append(more_item)
+
         self._menu.append(Gtk.SeparatorMenuItem())
 
         remove_item = Gtk.MenuItem(label="Remove mock indicator")
