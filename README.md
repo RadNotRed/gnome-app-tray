@@ -1,6 +1,6 @@
 # GNOME App Tray
 
-A Windows-style hidden-icons flyout for the GNOME 50 top bar. It works with the AppIndicator/KStatusNotifierItem extension and keeps application indicators responsive without taking ownership of their actors or menus.
+A Windows-style hidden-icons flyout for the GNOME 50 and 51 top bar. It works with the AppIndicator/KStatusNotifierItem extension and keeps application indicators responsive without taking ownership of their actors or menus.
 
 ## What it does
 
@@ -16,7 +16,7 @@ App Tray organizes applications that already expose a tray indicator. GNOME Shel
 
 ## Requirements
 
-- GNOME Shell 50
+- GNOME Shell 50 or 51
 - [AppIndicator and KStatusNotifierItem Support](https://extensions.gnome.org/extension/615/appindicator-support/) for most third-party tray applications
 
 ## Install

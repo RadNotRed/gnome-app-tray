@@ -11,6 +11,11 @@ function settle() {
   });
 }
 
+function getSeat() {
+  const backend = global.stage.context?.get_backend() ?? Clutter.get_default_backend();
+  return backend.get_default_seat();
+}
+
 export async function run(tray) {
   const assert = (condition, message) => {
     if (!condition) throw new Error(message);
@@ -77,7 +82,7 @@ export async function dismissal(tray) {
   const assert = (condition, message) => {
     if (!condition) throw new Error(message);
   };
-  const seat = Clutter.get_default_backend().get_default_seat();
+  const seat = getSeat();
   const keyboard = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
   const pointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
   const pressEscape = async () => {
@@ -138,7 +143,7 @@ export async function switching(tray) {
   const assert = (condition, message) => {
     if (!condition) throw new Error(message);
   };
-  const seat = Clutter.get_default_backend().get_default_seat();
+  const seat = getSeat();
   const pointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
   const click = async (actor, button) => {
     const [x, y] = actor.get_transformed_position();
